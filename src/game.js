@@ -3,7 +3,7 @@ import VoiceChat from './VoiceChat.js';
 import { io } from 'socket.io-client';
 import './game.css';
 
-const socket = io('http://localhost:3001');
+const socket = io('https://rockps-backend.onrender.com');
 const moves = ['Rock', 'Paper', 'Scissors'];
 
 export default function Game({ playerInfo }) {
