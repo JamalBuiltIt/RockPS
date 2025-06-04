@@ -9,7 +9,7 @@ app.use(cors({ origin: 'https://rps-frontend.onrender.com', methods: ['GET', 'PO
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: 'https://rps-frontend.onrender.com',
     methods: ['GET', 'POST'],
   },
 });
