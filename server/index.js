@@ -33,12 +33,14 @@ io.on('connection', (socket) => {
   console.log('✅ User connected:', socket.id);
 
   socket.on('joinMatchmaking', (profile) => {
+    if (!socket.connected) return;
+
     playerProfiles[socket.id] = {
-      name: profile.name || `Player-${Math.floor(Math.random() * 10000)}`,
-      instagram: profile.instagram || 'N/A',
+      name: profile?.name || `Player-${Math.floor(Math.random() * 10000)}`,
+      instagram: profile?.instagram || 'N/A',
     };
 
-    if (waitingPlayer && waitingPlayer.id !== socket.id) {
+    if (waitingPlayer && waitingPlayer.connected && waitingPlayer.id !== socket.id) {
       const opponentSocket = waitingPlayer;
       waitingPlayer = null;
 
@@ -124,25 +126,22 @@ io.on('connection', (socket) => {
     const opponentId = Object.keys(gameState[room]).find(id => id !== socket.id);
     const opponentSocket = io.sockets.sockets.get(opponentId);
 
-    if (opponentSocket) {
+    if (opponentSocket?.connected) {
       opponentSocket.leave(room);
       opponentSocket.data.room = null;
       opponentSocket.emit('opponentSkipped');
-      if (waitingPlayer?.id !== opponentId) {
-        waitingPlayer = opponentSocket;
-      }
-      opponentSocket.emit('joinMatchmaking', playerProfiles[opponentId]);
+      waitingPlayer = opponentSocket;
+      opponentSocket.emit('rejoinQueue'); // ✅ emit custom event, not joinMatchmaking
     }
 
     socket.leave(room);
-    delete gameState[room];
-    delete rematchRequests[room];
     socket.data.room = null;
 
-    if (waitingPlayer?.id !== socket.id) {
-      waitingPlayer = socket;
-    }
-    socket.emit('joinMatchmaking', playerProfiles[socket.id]);
+    delete gameState[room];
+    delete rematchRequests[room];
+
+    waitingPlayer = socket;
+    socket.emit('rejoinQueue'); // ✅ custom event for rejoining
   });
 
   socket.on('disconnect', () => {
@@ -156,12 +155,12 @@ io.on('connection', (socket) => {
       const opponentId = Object.keys(gameState[room]).find(id => id !== socket.id);
       const opponentSocket = io.sockets.sockets.get(opponentId);
 
-      if (opponentSocket) {
+      if (opponentSocket?.connected) {
         opponentSocket.leave(room);
         opponentSocket.data.room = null;
         opponentSocket.emit('opponentDisconnected');
         waitingPlayer = opponentSocket;
-        opponentSocket.emit('joinMatchmaking', playerProfiles[opponentId]);
+        opponentSocket.emit('rejoinQueue');
       }
 
       delete gameState[room];
@@ -171,7 +170,8 @@ io.on('connection', (socket) => {
     delete playerProfiles[socket.id];
   });
 });
-const PORT = process.env.PORT || 3001;
+
+const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
